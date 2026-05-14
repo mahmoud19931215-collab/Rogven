@@ -4,6 +4,7 @@
   "lang": "ar",
   "start_url": "./index.html",
   "display": "standalone",
+  "display_override": ["fullscreen", "standalone", "minimal-ui"],
   "background_color": "#3498db",
   "theme_color": "#3498db",
   "orientation": "portrait",
