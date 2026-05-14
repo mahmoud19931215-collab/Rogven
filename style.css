@@ -1,13 +1,18 @@
 
    
-    body {
-      margin: 0; font-family: Tahoma, Arial;
-      background: #f5fafe;
-      color: #222;
-      min-height: 100vh;
-      display: flex; flex-direction: column;
-      box-sizing: border-box;
+    body::-webkit-scrollbar  {
+         margin: 0; font-family: Tahoma, Arial;
+         background: #f5fafe;
+         color: #222;
+         min-height: 100vh;
+         display: flex; flex-direction: column;
+         box-sizing: border-box;
+        overscroll-behavior: contain;
+         /* إذا تريد إخفاء شريط التمرير */
+         scrollbar-width: none; /* للفايرفوكس */
+        -ms-overflow-style: none; /* للـ IE و Edge */
     }
+
     header {
       background: #3498db;
       color: #fff;
