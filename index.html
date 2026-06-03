@@ -3,19 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Reels Feed - محاكاة وميضية</title>
+    <title>Reels محمود</title>
+
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#0a0a0f">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Reels محمود">
+    <link rel="manifest" href="manifest.json">
+
+    <!-- Main Stylesheet -->
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
     <!-- ================================
-         Island 10: Main Scroll Container
+         Main Scroll Container
          ================================ -->
     <div class="reels-container" id="reelsContainer" aria-label="Reels video feed">
         <!-- يتم حقن عناصر .reel-item ديناميكياً عبر JavaScript -->
     </div>
 
-    <!-- قالب SVG مخفي لإعادة الاستخدام (Avoids duplicating SVG markup) -->
+    <!-- قالب SVG مخفي لإعادة الاستخدام -->
     <svg style="display:none;" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
         <!-- أيقونة القلب (Like) -->
         <symbol id="icon-heart" viewBox="0 0 24 24">
@@ -62,6 +71,20 @@
         </symbol>
     </svg>
 
+    <!-- Main Application Logic -->
     <script src="script.js"></script>
+
+    <!-- تسجيل Service Worker لدعم التخزين المؤقت والعمل دون اتصال -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js')
+                .then(function(registration) {
+                    console.log('✅ Service Worker registered with scope:', registration.scope);
+                })
+                .catch(function(error) {
+                    console.warn('❌ Service Worker registration failed:', error);
+                });
+        }
+    </script>
 </body>
 </html>
