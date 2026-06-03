@@ -3,7 +3,7 @@
  * script.js – Reels Feed Engine
  * (Vanilla JS | Virtual Scroll | Smart Play/Pause | Pre-fetching)
  * المطور: محمود | بيئة: أجهزة ضعيفة / إنترنت مقيد
- * التعديل: دعم رابط Google Apps Script (JSON/CSV) مع تخزين مؤقت
+ * التحديث: رابط Apps Script جديد مع دعم JSON/CSV وتخزين مؤقت
  * ================================
  */
 (function() {
@@ -12,7 +12,7 @@
     // ================================
     // Island 1: إعدادات Google Sheets (رابط Apps Script)
     // ================================
-    const SHEET_CSV_URL = 'https://script.google.com/macros/s/AKfycbzHD_WS_HyoZO56CLuoA1APvjcqdeQTThvzB_KahER_YOkQnVCG-HDaNXtj46J56caF/exec';
+    const SHEET_CSV_URL = 'https://script.google.com/macros/s/AKfycbxHerJNmZGIqO9WVQ8CRfY9ElN8tCo94OJaGHfxM096uxreP2qsAo9fB1Jqy9t1D-k5/exec';
 
     // ================================
     // Island 2: الحالة العامة للتطبيق
