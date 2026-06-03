@@ -1,28 +1,1296 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <title>Rogven</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="stylesheet" href="style.css">
-  <!-- ربط ملف manifest للتطبيق -->
-  <link rel="manifest" href="manifest.json">
-  <!-- تعيين لون أعلى المتصفح على الجوال -->
-  <meta name="theme-color" content="#3498db">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Reels Feed - محاكاة وميضية</title>
+    <style>
+        /* ================================
+           Island 1: Global Reset & CSS Variables
+           ================================ */
+        :root {
+            --bg-deep: #0a0a0f;
+            --accent-glow: #ff2d55;
+            --accent-soft: #ff6b81;
+            --glass-bg: rgba(18, 18, 30, 0.65);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-hover: rgba(255, 255, 255, 0.14);
+            --text-primary: #f5f5f7;
+            --text-secondary: #c2c2cc;
+            --progress-bg: rgba(255, 255, 255, 0.2);
+            --progress-fill: #ff2d55;
+            --shadow-glow: 0 0 24px rgba(255, 45, 85, 0.35);
+            --radius-sm: 12px;
+            --radius-pill: 999px;
+            --transition-snap: 0.32s cubic-bezier(0.22, 0.61, 0.36, 1);
+            --transition-fast: 0.18s ease-out;
+        }
 
-  <!-- (هنا سنضيف ملفات CSS للمكونات لاحقا) -->
-  
-  
+        *,
+        *::before,
+        *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #000;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-user-select: none;
+            user-select: none;
+            touch-action: pan-y;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* ================================
+           Island 2: Scroll Container (Snap Scrolling)
+           ================================ */
+        .reels-container {
+            width: 100%;
+            height: 100%;
+            overflow-y: scroll;
+            overflow-x: hidden;
+            scroll-snap-type: y mandatory;
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+            position: relative;
+            background: var(--bg-deep);
+            /* إخفاء شريط التمرير */
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        .reels-container::-webkit-scrollbar {
+            display: none;
+            width: 0;
+            height: 0;
+        }
+
+        /* ================================
+           Island 3: Individual Reel Item
+           ================================ */
+        .reel-item {
+            width: 100%;
+            height: 100%;
+            scroll-snap-align: start;
+            scroll-snap-stop: always;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #000;
+            overflow: hidden;
+            /* هام: كل عنصر يأخذ كامل منفذ العرض */
+            min-height: 100vh;
+            min-height: 100dvh;
+        }
+
+        /* تدرج خلفي وميضي عند الحواف */
+        .reel-item::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 2;
+            background:
+                linear-gradient(to top, rgba(0, 0, 0, 0.75) 0%, transparent 35%),
+                linear-gradient(to bottom, rgba(0, 0, 0, 0.55) 0%, transparent 28%),
+                radial-gradient(ellipse at 50% 50%, transparent 60%, rgba(10, 10, 15, 0.5) 100%);
+        }
+
+        /* عنصر الفيديو */
+        .reel-video {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 1;
+            background: #000;
+            /* تحسين الأداء على الأجهزة الضعيفة */
+            will-change: transform;
+            transform: translateZ(0);
+            -webkit-transform: translateZ(0);
+        }
+
+        /* ================================
+           Island 4: Overlay & Actions (SVG Inline Icons)
+           ================================ */
+        .reel-overlay {
+            position: absolute;
+            inset: 0;
+            z-index: 3;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            padding: 16px 12px 24px 12px;
+        }
+
+        /* حاوية الأزرار الجانبية (يمين الشاشة) */
+        .reel-actions {
+            position: absolute;
+            left: 10px;
+            bottom: 140px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 18px;
+            pointer-events: auto;
+            z-index: 4;
+        }
+
+        .action-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            pointer-events: auto;
+            -webkit-tap-highlight-color: transparent;
+            outline: none;
+            transition: transform var(--transition-fast);
+            position: relative;
+        }
+
+        .action-btn:active {
+            transform: scale(0.88);
+        }
+
+        .action-btn svg {
+            width: 32px;
+            height: 32px;
+            filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.5));
+            transition: filter var(--transition-fast), opacity var(--transition-fast);
+        }
+
+        .action-btn.liked svg {
+            filter:
+                drop-shadow(0 2px 8px rgba(255, 45, 85, 0.6))
+                drop-shadow(0 0 16px rgba(255, 45, 85, 0.4));
+        }
+
+        .action-label {
+            font-size: 11px;
+            color: #fff;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+            min-width: 36px;
+            text-align: center;
+        }
+
+        /* أيقونة كتم الصوت في الأعلى يمين */
+        .mute-btn-top {
+            position: absolute;
+            right: 14px;
+            top: 18px;
+            z-index: 5;
+            pointer-events: auto;
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background var(--transition-fast), transform var(--transition-fast), border-color var(--transition-fast);
+            -webkit-tap-highlight-color: transparent;
+            outline: none;
+        }
+
+        .mute-btn-top:active {
+            transform: scale(0.9);
+            background: var(--glass-hover);
+        }
+
+        .mute-btn-top svg {
+            width: 22px;
+            height: 22px;
+            filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.4));
+        }
+
+        /* ================================
+           Island 5: Info Section (أسفل الشاشة)
+           ================================ */
+        .reel-info {
+            position: absolute;
+            right: 12px;
+            left: 70px;
+            bottom: 70px;
+            z-index: 4;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .reel-username {
+            font-size: 15px;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: 0.2px;
+            text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .verified-badge {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+        }
+
+        .reel-caption {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.9);
+            line-height: 1.5;
+            text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        /* ================================
+           Island 6: Progress Bar (شريط التقدم السفلي)
+           ================================ */
+        .progress-track {
+            position: absolute;
+            bottom: 12px;
+            left: 10px;
+            right: 10px;
+            height: 3px;
+            background: var(--progress-bg);
+            border-radius: var(--radius-pill);
+            z-index: 5;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: var(--progress-fill);
+            border-radius: var(--radius-pill);
+            transition: width 0.25s linear;
+            box-shadow: var(--shadow-glow);
+            will-change: width;
+        }
+
+        /* ================================
+           Island 7: Loading Spinner (عند التحميل الأولي)
+           ================================ */
+        .loading-indicator {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2;
+            width: 44px;
+            height: 44px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+
+        .loading-indicator.active {
+            opacity: 1;
+        }
+
+        .loading-spinner {
+            width: 100%;
+            height: 100%;
+            border: 3px solid rgba(255, 255, 255, 0.25);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.75s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* ================================
+           Island 8: Double-Tap Like Effect (قلب متحرك)
+           ================================ */
+        .heart-burst {
+            position: absolute;
+            z-index: 6;
+            pointer-events: none;
+            width: 90px;
+            height: 90px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            opacity: 0;
+            filter: drop-shadow(0 0 20px rgba(255, 45, 85, 0.8));
+            animation: none;
+        }
+
+        .heart-burst.animate {
+            animation: heartPop 1s ease-out forwards;
+        }
+
+        @keyframes heartPop {
+            0% {
+                transform: translate(-50%, -50%) scale(0);
+                opacity: 1;
+            }
+            30% {
+                transform: translate(-50%, -50%) scale(1.35);
+                opacity: 1;
+            }
+            60% {
+                transform: translate(-50%, -50%) scale(1.05);
+                opacity: 0.8;
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(1.6);
+                opacity: 0;
+            }
+        }
+
+        /* ================================
+           Island 9: Responsive Tweaks
+           ================================ */
+        @media (max-width: 400px) {
+            .reel-actions {
+                left: 4px;
+                bottom: 120px;
+                gap: 14px;
+            }
+            .action-btn svg {
+                width: 28px;
+                height: 28px;
+            }
+            .action-label {
+                font-size: 10px;
+            }
+            .mute-btn-top {
+                right: 8px;
+                top: 10px;
+                width: 36px;
+                height: 36px;
+            }
+            .mute-btn-top svg {
+                width: 20px;
+                height: 20px;
+            }
+            .reel-info {
+                right: 8px;
+                left: 56px;
+                bottom: 55px;
+            }
+            .reel-username {
+                font-size: 14px;
+            }
+            .reel-caption {
+                font-size: 12px;
+            }
+        }
+
+        @media (min-width: 768px) {
+            .reels-container {
+                max-width: 420px;
+                margin: 0 auto;
+                border-left: 1px solid rgba(255, 255, 255, 0.06);
+                border-right: 1px solid rgba(255, 255, 255, 0.06);
+            }
+        }
+    </style>
 </head>
 <body>
-  <header>
-    <h1>Rogven</h1>
-  </header>
-  <main>
-    <p>مرحباً بك في متجرك الإلكتروني! سنضيف المنتجات قريباً.</p>
-  </main>
-  <footer>
-    &copy; 2026 Rogven. جميع الحقوق محفوظة.
-  </footer>
+
+    <!-- ================================
+         Island 10: Main Scroll Container
+         ================================ -->
+    <div class="reels-container" id="reelsContainer" aria-label="Reels video feed">
+        <!-- يتم حقن عناصر .reel-item ديناميكياً عبر JavaScript -->
+    </div>
+
+    <!-- قالب SVG مخفي لإعادة الاستخدام (Avoids duplicating SVG markup) -->
+    <svg style="display:none;" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+        <!-- أيقونة القلب (Like) -->
+        <symbol id="icon-heart" viewBox="0 0 24 24">
+            <path fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"
+            d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 1 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+        </symbol>
+        <!-- أيقونة القلب الممتلئ (Liked) -->
+        <symbol id="icon-heart-filled" viewBox="0 0 24 24">
+            <path fill="#ff2d55" stroke="#ff2d55" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
+            d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 1 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+        </symbol>
+        <!-- أيقونة المشاركة (Share) -->
+        <symbol id="icon-share" viewBox="0 0 24 24">
+            <circle cx="18" cy="5" r="2.8" fill="none" stroke="#fff" stroke-width="2"/>
+            <circle cx="6" cy="12" r="2.8" fill="none" stroke="#fff" stroke-width="2"/>
+            <circle cx="18" cy="19" r="2.8" fill="none" stroke="#fff" stroke-width="2"/>
+            <line x1="8.6" y1="10.8" x2="15.4" y2="6.2" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+            <line x1="15.4" y1="17.8" x2="8.6" y2="13.2" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+        </symbol>
+        <!-- أيقونة الصوت نشط (Unmuted) -->
+        <symbol id="icon-volume-on" viewBox="0 0 24 24">
+            <polygon points="11,5 6,9 2,9 2,15 6,15 11,19 11,5" fill="none" stroke="#fff" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" fill="none" stroke="#fff"
+            stroke-width="2" stroke-linecap="round"/>
+        </symbol>
+        <!-- أيقونة الصوت مكتوم (Muted) -->
+        <symbol id="icon-volume-off" viewBox="0 0 24 24">
+            <polygon points="11,5 6,9 2,9 2,15 6,15 11,19 11,5" fill="none" stroke="#fff" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round"/>
+            <line x1="23" y1="9" x2="17" y2="15" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+            <line x1="17" y1="9" x2="23" y2="15" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+        </symbol>
+        <!-- أيقونة علامة التحقق -->
+        <symbol id="icon-verified" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="11" fill="#1d9bf0" stroke="none"/>
+            <polyline points="7,12.5 10.5,16 17,9" fill="none" stroke="#fff" stroke-width="2.5"
+            stroke-linecap="round" stroke-linejoin="round"/>
+        </symbol>
+        <!-- قلب كبير للـ Double-Tap -->
+        <symbol id="icon-heart-large" viewBox="0 0 24 24">
+            <path fill="#ff2d55" stroke="none"
+            d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 1 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+        </symbol>
+    </svg>
+
+    <script>
+        (function() {
+            // ================================
+            // Island 11: بيانات الفيديوهات التجريبية
+            // ================================
+            const VIDEO_DATA = [{
+                id: 'v1',
+                src: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+                poster: '',
+                username: 'محمود | Mahmoud',
+                caption: '🎬 تجربة مذهلة لمحاكاة Reels بتصميم وميضي خالص • الأداء ممتاز حتى على الأجهزة الضعيفة',
+                likes: 2847,
+                verified: true
+            }, {
+                id: 'v2',
+                src: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+                poster: '',
+                username: 'تقنية بلا حدود',
+                caption: '⚡️ استجابة فائقة مع التمرير الكامل للشاشة • Smart Play/Pause عبر Intersection Observer',
+                likes: 1523,
+                verified: false
+            }, {
+                id: 'v3',
+                src: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
+                poster: '',
+                username: 'كود مبدع',
+                caption: '🔥 جزر برمجية خالصة • لا مكتبات • لا CDN • كود صافي 100%',
+                likes: 3912,
+                verified: true
+            }, {
+                id: 'v4',
+                src: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4',
+                poster: '',
+                username: 'سوريا تبرمج',
+                caption: '💪 من قلب سوريا • نبني حلولاً غير تقليدية للمستقبل',
+                likes: 5678,
+                verified: true
+            }, {
+                id: 'v5',
+                src: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4',
+                poster: '',
+                username: 'عالم الويب',
+                caption: '🌐 تحسين شبكة متقدم • Pre-fetching ذكي • تشغيل بدون تقطيع',
+                likes: 1204,
+                verified: false
+            }];
+
+            // ================================
+            // Island 12: الحالة العامة للتطبيق
+            // ================================
+            const STATE = {
+                currentIndex: 0, // الفهرس الحالي للفيديو المرئي
+                previousIndex: -1, // الفهرس السابق (للتنظيف)
+                isScrolling: false, // قفل أثناء التمرير السريع
+                scrollTimeout: null, // مؤقت debounce للتمرير
+                isMuted: true, // حالة كتم الصوت العامة
+                likedVideos: {}, // خريطة الإعجابات { videoId: true/false }
+                likeCounts: {}, // خريطة أعداد الإعجاب { videoId: number }
+                observer: null, // IntersectionObserver
+                container: null, // العنصر الحاوي
+                videoElements: [], // مراجع عناصر <video> في الـ DOM
+                preloadQueue: new Set(), // طابور التحميل المسبق
+                destroyedIndices: new Set() // الفهارس المدمرة (src فارغ)
+            };
+
+            // تهيئة أعداد الإعجاب من البيانات الأصلية
+            VIDEO_DATA.forEach(v => {
+                STATE.likeCounts[v.id] = v.likes;
+                STATE.likedVideos[v.id] = false;
+            });
+
+            // ================================
+            // Island 13: بناء هيكل DOM لعنصر Reel واحد
+            // ================================
+            function buildReelItem(data, index) {
+                const item = document.createElement('div');
+                item.className = 'reel-item';
+                item.setAttribute('data-index', index);
+                item.setAttribute('data-video-id', data.id);
+
+                // فيديو
+                const video = document.createElement('video');
+                video.className = 'reel-video';
+                video.setAttribute('playsinline', '');
+                video.setAttribute('webkit-playsinline', '');
+                video.setAttribute('x-webkit-airplay', 'deny');
+                video.setAttribute('disableRemotePlayback', '');
+                video.setAttribute('preload', 'none'); // افتراضي: لا تحميل حتى الحاجة
+                video.setAttribute('loop', '');
+                video.setAttribute('muted', '');
+                video.setAttribute('poster', data.poster || '');
+                // لا نضع src الآن — سيتم تعيينه عند التفعيل (Lazy)
+                item.appendChild(video);
+
+                // مؤشر التحميل
+                const loader = document.createElement('div');
+                loader.className = 'loading-indicator';
+                loader.innerHTML = '<div class="loading-spinner"></div>';
+                item.appendChild(loader);
+
+                // overlay
+                const overlay = document.createElement('div');
+                overlay.className = 'reel-overlay';
+
+                // أزرار الأفعال
+                const actions = document.createElement('div');
+                actions.className = 'reel-actions';
+
+                // زر الإعجاب
+                const likeBtn = document.createElement('button');
+                likeBtn.className = 'action-btn like-btn';
+                likeBtn.setAttribute('aria-label', 'إعجاب');
+                likeBtn.innerHTML = `
+                    <svg class="like-icon" width="32" height="32"><use href="#icon-heart"/></svg>
+                    <span class="action-label like-count">${formatCount(data.likes)}</span>
+                `;
+                actions.appendChild(likeBtn);
+
+                // زر المشاركة
+                const shareBtn = document.createElement('button');
+                shareBtn.className = 'action-btn share-btn';
+                shareBtn.setAttribute('aria-label', 'مشاركة');
+                shareBtn.innerHTML = `
+                    <svg width="32" height="32"><use href="#icon-share"/></svg>
+                    <span class="action-label">مشاركة</span>
+                `;
+                actions.appendChild(shareBtn);
+
+                overlay.appendChild(actions);
+
+                // زر كتم الصوت (أعلى اليمين)
+                const muteBtn = document.createElement('button');
+                muteBtn.className = 'mute-btn-top';
+                muteBtn.setAttribute('aria-label', 'كتم / تفعيل الصوت');
+                muteBtn.innerHTML = `<svg width="22" height="22"><use href="#icon-volume-off"/></svg>`;
+                overlay.appendChild(muteBtn);
+
+                // معلومات الفيديو
+                const info = document.createElement('div');
+                info.className = 'reel-info';
+                info.innerHTML = `
+                    <span class="reel-username">
+                        ${escapeHTML(data.username)}
+                        ${data.verified ? '<svg class="verified-badge" width="18" height="18"><use href="#icon-verified"/></svg>' : ''}
+                    </span>
+                    <span class="reel-caption">${escapeHTML(data.caption)}</span>
+                `;
+                overlay.appendChild(info);
+
+                // شريط التقدم
+                const progressTrack = document.createElement('div');
+                progressTrack.className = 'progress-track';
+                progressTrack.innerHTML = '<div class="progress-fill"></div>';
+                overlay.appendChild(progressTrack);
+
+                // قلب الـ Double-Tap
+                const heartBurst = document.createElement('div');
+                heartBurst.className = 'heart-burst';
+                heartBurst.innerHTML = '<svg width="90" height="90"><use href="#icon-heart-large"/></svg>';
+                overlay.appendChild(heartBurst);
+
+                item.appendChild(overlay);
+
+                return item;
+            }
+
+            // ================================
+            // Island 14: دوال مساعدة
+            // ================================
+            function escapeHTML(str) {
+                const div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            }
+
+            function formatCount(num) {
+                if (num >= 1000000) return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+                if (num >= 1000) return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+                return num.toString();
+            }
+
+            // ================================
+            // Island 15: إدارة دورة حياة الفيديو (Virtualization Core)
+            // ================================
+            function getVideoElement(index) {
+                const item = STATE.container.querySelector(`.reel-item[data-index="${index}"]`);
+                if (!item) return null;
+                return item.querySelector('.reel-video');
+            }
+
+            function getReelItem(index) {
+                return STATE.container.querySelector(`.reel-item[data-index="${index}"]`);
+            }
+
+            /**
+             * تفعيل فيديو: تعيين src، بدء التحميل، وتشغيله
+             */
+            function activateVideo(index) {
+                const video = getVideoElement(index);
+                const item = getReelItem(index);
+                if (!video || !item) return;
+
+                const data = VIDEO_DATA[index];
+                if (!data) return;
+
+                // إذا كان الفيديو مدمراً (src فارغ)، أعد تعيينه
+                if (STATE.destroyedIndices.has(index) || !video.src || video.src === window.location.href) {
+                    video.setAttribute('preload', 'auto');
+                    video.src = data.src;
+                    STATE.destroyedIndices.delete(index);
+                    // إظهار مؤشر التحميل
+                    const loader = item.querySelector('.loading-indicator');
+                    if (loader) loader.classList.add('active');
+                }
+
+                // التأكد من كتم الصوت حسب الحالة العامة
+                video.muted = STATE.isMuted;
+
+                // محاولة التشغيل
+                const playPromise = video.play();
+                if (playPromise !== undefined) {
+                    playPromise.then(() => {
+                        // إخفاء مؤشر التحميل عند بدء التشغيل
+                        const loader = item.querySelector('.loading-indicator');
+                        if (loader) loader.classList.remove('active');
+                    }).catch(err => {
+                        // قد يفشل بسبب عدم تفاعل المستخدم (يُعالج لاحقاً)
+                        console.warn('Auto-play blocked for index', index, err.message);
+                        const loader = item.querySelector('.loading-indicator');
+                        if (loader) loader.classList.remove('active');
+                    });
+                }
+
+                // تحديث أيقونة كتم الصوت
+                updateMuteIcon(index);
+
+                // بدء تحديث شريط التقدم
+                startProgressTracking(index, video);
+
+                // إضافة مستمعين للفيديو
+                attachVideoEvents(index, video);
+            }
+
+            /**
+             * إيقاف فيديو: pause + إبقاء src (جارٍ التحميل المسبق)
+             */
+            function deactivateVideo(index, destroyFar = false) {
+                const video = getVideoElement(index);
+                if (!video) return;
+
+                video.pause();
+                // إزالة مستمع timeupdate لتوفير المعالج
+                removeProgressTracking(index, video);
+                removeVideoEvents(index, video);
+
+                if (destroyFar) {
+                    // تدمير كامل: إزالة src لتوفير الذاكرة
+                    video.removeAttribute('src');
+                    video.load(); // تفريغ الذاكرة الحركية
+                    STATE.destroyedIndices.add(index);
+                    const item = getReelItem(index);
+                    if (item) {
+                        const loader = item.querySelector('.loading-indicator');
+                        if (loader) loader.classList.remove('active');
+                        const progressFill = item.querySelector('.progress-fill');
+                        if (progressFill) progressFill.style.width = '0%';
+                    }
+                } else {
+                    // إيقاف فقط، الإبقاء على التحميل المسبق
+                    video.currentTime = 0; // إعادة للبداية ليكون جاهزاً
+                    const item = getReelItem(index);
+                    if (item) {
+                        const progressFill = item.querySelector('.progress-fill');
+                        if (progressFill) progressFill.style.width = '0%';
+                    }
+                }
+            }
+
+            /**
+             * تحميل مسبق للفيديو التالي (Pre-fetching)
+             */
+            function preloadNextVideo(index) {
+                const nextIndex = index + 1;
+                if (nextIndex >= VIDEO_DATA.length) return;
+                if (STATE.preloadQueue.has(nextIndex)) return; // محمل مسبقاً بالفعل
+
+                const video = getVideoElement(nextIndex);
+                if (!video) return;
+
+                // إذا لم يكن محملاً بعد
+                if (!video.src || video.src === window.location.href || STATE.destroyedIndices.has(nextIndex)) {
+                    const data = VIDEO_DATA[nextIndex];
+                    video.setAttribute('preload', 'auto');
+                    video.src = data.src;
+                    STATE.destroyedIndices.delete(nextIndex);
+                    STATE.preloadQueue.add(nextIndex);
+                    // لا نشغّله — مجرد تحميل البداية
+                }
+            }
+
+            /**
+             * تنظيف الفيديوهات البعيدة (أكثر من 2 عنصر بعيداً عن الحالي)
+             */
+            function cleanupDistantVideos(currentIdx) {
+                for (let i = 0; i < VIDEO_DATA.length; i++) {
+                    if (Math.abs(i - currentIdx) > 2) {
+                        // بعيد جداً: دمره
+                        const video = getVideoElement(i);
+                        if (video && video.src && video.src !== window.location.href && !STATE.destroyedIndices.has(
+                                i)) {
+                            deactivateVideo(i, true);
+                        }
+                    }
+                }
+                // تنظيف الطابور للفيديوهات القريبة فقط
+                STATE.preloadQueue.forEach(idx => {
+                    if (Math.abs(idx - currentIdx) > 2) {
+                        STATE.preloadQueue.delete(idx);
+                    }
+                });
+            }
+
+            // ================================
+            // Island 16: تتبع شريط التقدم
+            // ================================
+            const progressIntervals = new Map(); // index -> intervalID
+
+            function startProgressTracking(index, video) {
+                // إزالة أي تتبع سابق
+                removeProgressTracking(index, video);
+
+                const item = getReelItem(index);
+                if (!item) return;
+                const progressFill = item.querySelector('.progress-fill');
+                if (!progressFill) return;
+
+                // استخدام timeupdate لتحديث دقيق
+                const onTimeUpdate = () => {
+                    if (video.duration && isFinite(video.duration)) {
+                        const pct = (video.currentTime / video.duration) * 100;
+                        progressFill.style.width = pct.toFixed(2) + '%';
+                    }
+                };
+
+                video.addEventListener('timeupdate', onTimeUpdate, { passive: true });
+
+                // تخزين المرجع للتنظيف
+                progressIntervals.set(index, { video, onTimeUpdate });
+            }
+
+            function removeProgressTracking(index, video) {
+                const entry = progressIntervals.get(index);
+                if (entry) {
+                    entry.video.removeEventListener('timeupdate', entry.onTimeUpdate);
+                    progressIntervals.delete(index);
+                }
+                // إعادة تعيين الشريط
+                const item = getReelItem(index);
+                if (item) {
+                    const progressFill = item.querySelector('.progress-fill');
+                    if (progressFill) progressFill.style.width = '0%';
+                }
+            }
+
+            // ================================
+            // Island 17: أحداث الفيديو (التحميل، الانتهاء)
+            // ================================
+            const videoEventHandlers = new Map();
+
+            function attachVideoEvents(index, video) {
+                const onLoadedData = () => {
+                    const item = getReelItem(index);
+                    if (item) {
+                        const loader = item.querySelector('.loading-indicator');
+                        if (loader) loader.classList.remove('active');
+                    }
+                };
+                const onWaiting = () => {
+                    const item = getReelItem(index);
+                    if (item) {
+                        const loader = item.querySelector('.loading-indicator');
+                        if (loader && !video.paused) loader.classList.add('active');
+                    }
+                };
+                const onEnded = () => {
+                    // Loop: لا شيء إضافي، الفيديو يعيد التشغيل تلقائياً
+                };
+
+                video.addEventListener('loadeddata', onLoadedData, { passive: true });
+                video.addEventListener('waiting', onWaiting, { passive: true });
+                video.addEventListener('ended', onEnded, { passive: true });
+
+                videoEventHandlers.set(index, { onLoadedData, onWaiting, onEnded });
+            }
+
+            function removeVideoEvents(index, video) {
+                const handlers = videoEventHandlers.get(index);
+                if (handlers) {
+                    video.removeEventListener('loadeddata', handlers.onLoadedData);
+                    video.removeEventListener('waiting', handlers.onWaiting);
+                    video.removeEventListener('ended', handlers.onEnded);
+                    videoEventHandlers.delete(index);
+                }
+            }
+
+            // ================================
+            // Island 18: تحديث أيقونة كتم الصوت
+            // ================================
+            function updateMuteIcon(index) {
+                const item = getReelItem(index);
+                if (!item) return;
+                const muteBtn = item.querySelector('.mute-btn-top');
+                if (!muteBtn) return;
+                const iconUse = muteBtn.querySelector('use');
+                if (!iconUse) return;
+                if (STATE.isMuted) {
+                    iconUse.setAttribute('href', '#icon-volume-off');
+                    muteBtn.setAttribute('aria-label', 'تفعيل الصوت');
+                } else {
+                    iconUse.setAttribute('href', '#icon-volume-on');
+                    muteBtn.setAttribute('aria-label', 'كتم الصوت');
+                }
+            }
+
+            function updateAllMuteIcons() {
+                for (let i = 0; i < VIDEO_DATA.length; i++) {
+                    updateMuteIcon(i);
+                    const video = getVideoElement(i);
+                    if (video) video.muted = STATE.isMuted;
+                }
+            }
+
+            // ================================
+            // Island 19: إدارة الإعجابات
+            // ================================
+            function toggleLike(index) {
+                const data = VIDEO_DATA[index];
+                if (!data) return;
+                const videoId = data.id;
+                const currentlyLiked = STATE.likedVideos[videoId] || false;
+
+                if (currentlyLiked) {
+                    STATE.likedVideos[videoId] = false;
+                    STATE.likeCounts[videoId] = Math.max(0, (STATE.likeCounts[videoId] || data.likes) - 1);
+                } else {
+                    STATE.likedVideos[videoId] = true;
+                    STATE.likeCounts[videoId] = (STATE.likeCounts[videoId] || data.likes) + 1;
+                }
+
+                // تحديث الواجهة
+                const item = getReelItem(index);
+                if (!item) return;
+                const likeBtn = item.querySelector('.like-btn');
+                const likeIcon = likeBtn ? likeBtn.querySelector('.like-icon use') : null;
+                const likeCountEl = likeBtn ? likeBtn.querySelector('.like-count') : null;
+
+                if (likeIcon) {
+                    likeIcon.setAttribute('href', STATE.likedVideos[videoId] ? '#icon-heart-filled' : '#icon-heart');
+                }
+                if (likeBtn) {
+                    if (STATE.likedVideos[videoId]) {
+                        likeBtn.classList.add('liked');
+                    } else {
+                        likeBtn.classList.remove('liked');
+                    }
+                }
+                if (likeCountEl) {
+                    likeCountEl.textContent = formatCount(STATE.likeCounts[videoId]);
+                }
+
+                // حفظ في LocalStorage
+                try {
+                    const saved = JSON.parse(localStorage.getItem('reels_liked') || '{}');
+                    saved[videoId] = STATE.likedVideos[videoId];
+                    localStorage.setItem('reels_liked', JSON.stringify(saved));
+                } catch (e) { /* ignore */ }
+            }
+
+            function restoreLikesFromStorage() {
+                try {
+                    const saved = JSON.parse(localStorage.getItem('reels_liked') || '{}');
+                    Object.keys(saved).forEach(videoId => {
+                        if (saved[videoId]) {
+                            STATE.likedVideos[videoId] = true;
+                            STATE.likeCounts[videoId] = (STATE.likeCounts[videoId] || 0) + 1;
+                        }
+                    });
+                } catch (e) { /* ignore */ }
+            }
+
+            // ================================
+            // Island 20: معالجة Double-Tap (نقر مزدوج للإعجاب)
+            // ================================
+            function triggerHeartBurst(index) {
+                const item = getReelItem(index);
+                if (!item) return;
+                const heartBurst = item.querySelector('.heart-burst');
+                if (!heartBurst) return;
+
+                // إعادة تشغيل الأنيميشن
+                heartBurst.classList.remove('animate');
+                void heartBurst.offsetWidth; // إعادة تدفق قسرية
+                heartBurst.classList.add('animate');
+
+                // إذا لم يكن معجباً بعد، قم بالإعجاب
+                const data = VIDEO_DATA[index];
+                if (data && !STATE.likedVideos[data.id]) {
+                    toggleLike(index);
+                }
+            }
+
+            // ================================
+            // Island 21: إعداد Intersection Observer
+            // ================================
+            function setupIntersectionObserver() {
+                // استخدام threshold 1.0 يعني أن 100% من العنصر يجب أن يكون مرئياً
+                // لكن عملياً على الموبايل قد لا يصل تماماً لـ 1.0 بسبب أشرطة المتصفح
+                // نستخدم 0.95 لضمان اكتشاف موثوق
+                const options = {
+                    root: STATE.container,
+                    rootMargin: '0px',
+                    threshold: 0.95
+                };
+
+                STATE.observer = new IntersectionObserver((entries) => {
+                    if (STATE.isScrolling) return; // تجاهل أثناء التمرير السريع
+
+                    entries.forEach(entry => {
+                        const index = parseInt(entry.target.getAttribute('data-index'), 10);
+                        if (isNaN(index)) return;
+
+                        if (entry.isIntersecting && entry.intersectionRatio >= 0.95) {
+                            // هذا الفيديو هو المرئي الآن
+                            if (STATE.currentIndex !== index) {
+                                handleIndexChange(index);
+                            }
+                        }
+                    });
+                }, options);
+
+                // مراقبة كل العناصر
+                const items = STATE.container.querySelectorAll('.reel-item');
+                items.forEach(item => STATE.observer.observe(item));
+            }
+
+            // ================================
+            // Island 22: التعامل مع تغيير الفهرس المرئي
+            // ================================
+            function handleIndexChange(newIndex) {
+                if (newIndex === STATE.currentIndex) return;
+                if (newIndex < 0 || newIndex >= VIDEO_DATA.length) return;
+
+                const oldIndex = STATE.currentIndex;
+                STATE.previousIndex = oldIndex;
+                STATE.currentIndex = newIndex;
+
+                // 1. إيقاف الفيديو السابق (لكن لا تدمره — احتفظ به للرجوع السريع)
+                if (oldIndex >= 0 && oldIndex < VIDEO_DATA.length) {
+                    deactivateVideo(oldIndex, false);
+                }
+
+                // 2. تفعيل الفيديو الحالي
+                activateVideo(newIndex);
+
+                // 3. تحميل مسبق للفيديو التالي
+                preloadNextVideo(newIndex);
+
+                // 4. تنظيف الفيديوهات البعيدة (أكثر من 2 عنصر)
+                cleanupDistantVideos(newIndex);
+
+                // 5. حفظ الفهرس في sessionStorage للاستئناف
+                try {
+                    sessionStorage.setItem('reels_current_index', newIndex);
+                } catch (e) { /* ignore */ }
+            }
+
+            // ================================
+            // Island 23: معالج التمرير (Scroll Handler مع Debounce)
+            // ================================
+            function onScrollEnd() {
+                STATE.isScrolling = false;
+                // البحث عن العنصر الأكثر ظهوراً
+                const containerRect = STATE.container.getBoundingClientRect();
+                const containerCenter = containerRect.top + containerRect.height / 2;
+
+                let bestIndex = STATE.currentIndex;
+                let bestDistance = Infinity;
+
+                const items = STATE.container.querySelectorAll('.reel-item');
+                items.forEach(item => {
+                    const rect = item.getBoundingClientRect();
+                    const itemCenter = rect.top + rect.height / 2;
+                    const distance = Math.abs(itemCenter - containerCenter);
+                    if (distance < bestDistance) {
+                        bestDistance = distance;
+                        bestIndex = parseInt(item.getAttribute('data-index'), 10);
+                    }
+                });
+
+                if (bestIndex >= 0 && bestIndex < VIDEO_DATA.length && bestIndex !== STATE.currentIndex) {
+                    handleIndexChange(bestIndex);
+                }
+            }
+
+            function onScroll() {
+                STATE.isScrolling = true;
+                if (STATE.scrollTimeout) clearTimeout(STATE.scrollTimeout);
+                STATE.scrollTimeout = setTimeout(onScrollEnd, 280);
+            }
+
+            // ================================
+            // Island 24: ربط الأحداث التفاعلية
+            // ================================
+            function attachInteractionEvents(index) {
+                const item = getReelItem(index);
+                if (!item) return;
+
+                // زر الإعجاب
+                const likeBtn = item.querySelector('.like-btn');
+                if (likeBtn && !likeBtn._eventsBound) {
+                    likeBtn._eventsBound = true;
+                    likeBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        toggleLike(index);
+                    });
+                }
+
+                // زر المشاركة (Web Share API أو نسخ الرابط)
+                const shareBtn = item.querySelector('.share-btn');
+                if (shareBtn && !shareBtn._eventsBound) {
+                    shareBtn._eventsBound = true;
+                    shareBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const data = VIDEO_DATA[index];
+                        if (navigator.share) {
+                            navigator.share({
+                                title: data.username,
+                                text: data.caption,
+                                url: data.src
+                            }).catch(() => {});
+                        } else {
+                            // نسخ الرابط كحل بديل
+                            navigator.clipboard.writeText(data.src).then(() => {
+                                // إشعار بسيط
+                                const label = shareBtn.querySelector('.action-label');
+                                if (label) {
+                                    label.textContent = 'تم النسخ!';
+                                    setTimeout(() => { label.textContent = 'مشاركة'; }, 1800);
+                                }
+                            }).catch(() => {});
+                        }
+                    });
+                }
+
+                // زر كتم الصوت
+                const muteBtn = item.querySelector('.mute-btn-top');
+                if (muteBtn && !muteBtn._eventsBound) {
+                    muteBtn._eventsBound = true;
+                    muteBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        STATE.isMuted = !STATE.isMuted;
+                        updateAllMuteIcons();
+                        // حفظ التفضيل
+                        try {
+                            localStorage.setItem('reels_muted', STATE.isMuted ? '1' : '0');
+                        } catch (e) { /* ignore */ }
+                    });
+                }
+
+                // Double-Tap على الفيديو
+                if (!item._dblTapBound) {
+                    item._dblTapBound = true;
+                    let tapCount = 0;
+                    let tapTimer = null;
+
+                    item.addEventListener('click', (e) => {
+                        // تجاهل النقر على الأزرار
+                        if (e.target.closest('button')) return;
+
+                        tapCount++;
+                        if (tapCount === 1) {
+                            tapTimer = setTimeout(() => {
+                                tapCount = 0;
+                                // نقرة واحدة: إيقاف/تشغيل الفيديو
+                                const video = getVideoElement(index);
+                                if (video) {
+                                    if (video.paused) {
+                                        video.play().catch(() => {});
+                                    } else {
+                                        video.pause();
+                                    }
+                                }
+                            }, 280);
+                        } else if (tapCount === 2) {
+                            clearTimeout(tapTimer);
+                            tapCount = 0;
+                            triggerHeartBurst(index);
+                        }
+                    });
+                }
+            }
+
+            function attachAllInteractionEvents() {
+                for (let i = 0; i < VIDEO_DATA.length; i++) {
+                    attachInteractionEvents(i);
+                }
+            }
+
+            // ================================
+            // Island 25: استعادة حالة كتم الصوت من LocalStorage
+            // ================================
+            function restoreMuteState() {
+                try {
+                    const saved = localStorage.getItem('reels_muted');
+                    if (saved === '0') STATE.isMuted = false;
+                    else STATE.isMuted = true;
+                } catch (e) {
+                    STATE.isMuted = true;
+                }
+            }
+
+            // ================================
+            // Island 26: التهيئة الكاملة (Bootstrap)
+            // ================================
+            function bootstrap() {
+                STATE.container = document.getElementById('reelsContainer');
+                if (!STATE.container) {
+                    console.error('Container not found');
+                    return;
+                }
+
+                // استعادة التفضيلات
+                restoreMuteState();
+                restoreLikesFromStorage();
+
+                // بناء كل عناصر الـ DOM
+                VIDEO_DATA.forEach((data, index) => {
+                    const reelItem = buildReelItem(data, index);
+                    STATE.container.appendChild(reelItem);
+                });
+
+                // ربط الأحداث التفاعلية
+                attachAllInteractionEvents();
+
+                // إعداد Intersection Observer
+                setupIntersectionObserver();
+
+                // مستمع التمرير
+                STATE.container.addEventListener('scroll', onScroll, { passive: true });
+
+                // استعادة الفهرس الأخير أو البدء من 0
+                let startIndex = 0;
+                try {
+                    const saved = sessionStorage.getItem('reels_current_index');
+                    if (saved !== null) {
+                        const parsed = parseInt(saved, 10);
+                        if (parsed >= 0 && parsed < VIDEO_DATA.length) {
+                            startIndex = parsed;
+                        }
+                    }
+                } catch (e) { /* ignore */ }
+
+                // تمرير مباشر للفيديو المستهدف
+                STATE.currentIndex = startIndex;
+                const targetItem = getReelItem(startIndex);
+                if (targetItem) {
+                    targetItem.scrollIntoView({ behavior: 'instant', block: 'start' });
+                }
+
+                // تفعيل الفيديو الأول بعد فترة وجيزة (للسماح بـ DOM بالاستقرار)
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        activateVideo(startIndex);
+                        preloadNextVideo(startIndex);
+                        // تحديث الأيقونات للفيديو الأول
+                        updateMuteIcon(startIndex);
+                        const data = VIDEO_DATA[startIndex];
+                        if (data && STATE.likedVideos[data.id]) {
+                            const item = getReelItem(startIndex);
+                            if (item) {
+                                const likeBtn = item.querySelector('.like-btn');
+                                const likeIcon = likeBtn ? likeBtn.querySelector('.like-icon use') : null;
+                                const likeCountEl = likeBtn ? likeBtn.querySelector('.like-count') : null;
+                                if (likeIcon) likeIcon.setAttribute('href', '#icon-heart-filled');
+                                if (likeBtn) likeBtn.classList.add('liked');
+                                if (likeCountEl) likeCountEl.textContent = formatCount(STATE.likeCounts[data.id]);
+                            }
+                        }
+                    });
+                });
+
+                // التعامل مع تغيير الرؤية (عند تبديل التطبيقات)
+                document.addEventListener('visibilitychange', () => {
+                    if (document.hidden) {
+                        // إيقاف الفيديو الحالي عند إخفاء الصفحة
+                        const video = getVideoElement(STATE.currentIndex);
+                        if (video && !video.paused) {
+                            video.pause();
+                        }
+                    } else {
+                        // استئناف الفيديو الحالي عند العودة
+                        const video = getVideoElement(STATE.currentIndex);
+                        if (video && video.paused) {
+                            video.play().catch(() => {});
+                        }
+                    }
+                });
+
+                console.log('✅ Reels Feed initialized —', VIDEO_DATA.length, 'videos ready.');
+            }
+
+            // ================================
+            // Island 27: بدء التشغيل عند جاهزية DOM
+            // ================================
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', bootstrap);
+            } else {
+                bootstrap();
+            }
+        })();
+    </script>
 </body>
 </html>
