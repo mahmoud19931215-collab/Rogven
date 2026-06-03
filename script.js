@@ -12,7 +12,7 @@
     // ================================
     // Island 1: إعدادات Google Sheets (رابط Apps Script)
     // ================================
-    const SHEET_CSV_URL = 'https://script.google.com/macros/s/AKfycbxHerJNmZGIqO9WVQ8CRfY9ElN8tCo94OJaGHfxM096uxreP2qsAo9fB1Jqy9t1D-k5/exec';
+    const SHEET_CSV_URL = 'https://script.google.com/macros/s/AKfycbxpGQKKYBQbRpcCFwF8TRL50B_KQvNg_ocx0bGldGWK7c5TLLhi2WhWLFX050L_GUuL/exec';
 
     // ================================
     // Island 2: الحالة العامة للتطبيق
